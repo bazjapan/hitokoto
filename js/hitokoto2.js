@@ -7,7 +7,6 @@ FRZ.exports(["managed_service_plugin"], function(ManagedService) {
 		hitokoto = {
 			ui: {}
 		};
-
 		hitokoto.service = ManagedService(app, {}).manage("hitokoto");
 		hitokoto.service.add_methods("add_item", "remove_item", "remove_by_obj_id");
 		hitokoto.add_item = function(item, done) {
@@ -93,7 +92,7 @@ FRZ.exports(["managed_service_plugin"], function(ManagedService) {
 		}
 
 		var dom = app.dom;
-		hitokoto.translations = {
+		hitokoto.translations = app.add_translations({
 			en: {
 				comment: "Comment",
 				add_comment: "Add Comment",
@@ -112,15 +111,14 @@ FRZ.exports(["managed_service_plugin"], function(ManagedService) {
 				remove_comment_lbl: "削除する",
 				remove_all: "すべて削除する"
 			}
-		}
-		app.add_translations(hitokoto.translations);
+		});
 
 		hitokoto.icons = {
 			add_comment: "plus",
 			remove_comment: "remove",
 			comment_menu: "ellipsis_vertical"
 		}
-		var get_clear_all_btn = function(attrs, memo) {
+		var render_clear_all_btn = function(attrs, memo) {
 			if (attrs.can_remove_all && memo.items.length) {
 				return dom.bj.btn({
 					className: "bj_btn_danger",
@@ -137,7 +135,7 @@ FRZ.exports(["managed_service_plugin"], function(ManagedService) {
 		}
 
 		var get_comment_area = function(attrs, memo) {
-			var get_input = function() {
+			var render_input = function() {
 				if (!attrs.can_comment) {
 					return null;
 				}
@@ -184,7 +182,7 @@ FRZ.exports(["managed_service_plugin"], function(ManagedService) {
 					className: "btn_comment"
 				})]
 			}
-			return dom.div(null, get_input(), dom.bj.contentbar(get_clear_all_btn(attrs, memo), null, get_btns()));
+			return dom.div(null, render_input(), dom.bj.contentbar(render_clear_all_btn(attrs, memo), null, get_btns()));
 		}
 		var get_list = function(attrs, memo) {
 			if (memo.items.length === 0) {
@@ -213,7 +211,7 @@ FRZ.exports(["managed_service_plugin"], function(ManagedService) {
 				})
 
 			}
-			var get_menu = function(item) {
+			var render_menu = function(item) {
 				var btns = [];
 				if (check_can_remove(item)) {
 					btns.push(dom.bj.btn({
@@ -250,10 +248,10 @@ FRZ.exports(["managed_service_plugin"], function(ManagedService) {
 			}, memo.items.map(function(item) {
 				return dom.bj.lt_media_item({
 					src: (item.u_p || FRZ.default_account_photoURL)
-				}, [get_menu(item), dom.p(null, item.txt)], [dom.span({}, item.u_n)]);
+				}, [render_menu(item), dom.p(null, item.txt)], [dom.span({}, item.u_n)]);
 			}))
 		}
-		var do_display= function(attrs, memo){
+		var render_commnet_list_body= function(attrs, memo){
 			if(attrs.input_below){
 				return [get_list(attrs, memo), get_comment_area(attrs, memo)];
 			}
@@ -268,7 +266,7 @@ FRZ.exports(["managed_service_plugin"], function(ManagedService) {
 			}
 			return dom.div({
 				className: "lt_hitokoto_comments"
-			}, do_display(attrs, memo));
+			}, render_commnet_list_body(attrs, memo));
 		}
 
 		return app.globalize("hitokoto", hitokoto);
