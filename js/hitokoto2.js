@@ -37,7 +37,7 @@ FRZ.exports(["managed_service_plugin"], function(ManagedService) {
 		hitokoto.service.loobs.register({
 			qn: "get_items"
 		});
-
+		hitokoto.models = [];
 		hitokoto.create_model = function(on_data) {
 			var model = {};
 			var items = [];
@@ -64,7 +64,7 @@ FRZ.exports(["managed_service_plugin"], function(ManagedService) {
 			model.remove = function(item, done) {
 				return hitokoto.remove_item(item, done);
 			}
-			var ldr = hitokoto.service.loobs.use("get_items", {
+			model.ldr = hitokoto.service.loobs.use("get_items", {
 				on_change: function(ldr_val, mdata) {
 					items = ldr_val;
 					items.sort(app.utils.sort_by_param("da", 1, function(v) {
@@ -80,13 +80,16 @@ FRZ.exports(["managed_service_plugin"], function(ManagedService) {
 				var alias = [key, obj_id, obj_type].join("__");
 				if (alias != last_query_alias) {
 					last_query_alias = alias;
-					ldr.load({
+					model.ldr.load({
 						key: key,
 						obj_id: obj_id,
 						obj_type: obj_type
 					});
 				}
 				return items;
+			}
+			if(FRZ.is_dev){
+				hitokoto.models.push(model);
 			}
 			return model;
 		}
@@ -126,15 +129,14 @@ FRZ.exports(["managed_service_plugin"], function(ManagedService) {
 					lbl: app.lbl("remove_all"),
 					onClick: function(e) {
 						app.confirm(app.lblwn("remove_pname", "comment"), function() {
-							return attrs.model.clear_all(attrs.key, attrs.obj_id, attrs.obj_type, function(err, res) {
-							})
+							return attrs.model.clear_all(attrs.key, attrs.obj_id, attrs.obj_type, function(err, res) {})
 						})
 					}
 				})
 			}
 		}
 
-		var get_comment_area = function(attrs, memo) {
+		var render_comment_area = function(attrs, memo) {
 			var render_input = function() {
 				if (!attrs.can_comment) {
 					return null;
@@ -167,7 +169,7 @@ FRZ.exports(["managed_service_plugin"], function(ManagedService) {
 			var do_cancel = function() {
 				return memo.el.value = "";
 			}
-			var get_btns = function() {
+			var render_btns = function() {
 				if (!attrs.can_comment) {
 					return null;
 				}
@@ -182,86 +184,95 @@ FRZ.exports(["managed_service_plugin"], function(ManagedService) {
 					className: "btn_comment"
 				})]
 			}
-			return dom.div(null, render_input(), dom.bj.contentbar(render_clear_all_btn(attrs, memo), null, get_btns()));
+			return dom.div(null, render_input(), dom.bj.contentbar(render_clear_all_btn(attrs, memo), null, render_btns()));
+		};
+		var check_can_remove = function(attrs, item) {
+			return attrs.can_remove_all || attrs.can_remove && item.u_id === app.get_u_id();
 		}
-		var get_list = function(attrs, memo) {
+		var show_menu_pop = function(x, y, item, btns) {
+			var w = 120;
+			return app.popit.toggle({
+				initiator: "hitokoto_" + item._id,
+				left: x - w,
+				top: y,
+				render: function(dom, popper) {
+					return dom.bj.vbox({
+						zen: {
+							w: w,
+							ai: "fe"
+						}
+					}, dom.span({
+						className: "hitokoto_menupop_bg"
+					}, btns));
+				},
+				ann: x === 3 ? "slideInRight" : ""
+			})
+
+		};
+		var render_menu = function(attrs, item) {
+			var btns = [];
+			if (check_can_remove(attrs, item)) {
+				btns.push(dom.bj.btn({
+					lbl: app.lbl("remove_comment_lbl"),
+					icon_right: hitokoto.icons.remove_comment,
+					onClick: function() {
+						app.popit.hide();
+						return attrs.model.remove(item, function(err, res) {});
+					}
+				}))
+			}
+			if (!btns.length) {
+				return null;
+			}
+			return dom.bj.btn({
+				zen: {
+					pos: "a",
+					t: 2,
+					r: 2
+				},
+				icon: hitokoto.icons.comment_menu,
+				onClick: function(e) {
+					var r = e.currentTarget.getBoundingClientRect();
+					return show_menu_pop(r.left + r.width, r.top + r.height, item, btns);
+				}
+			});
+		};
+		var formatted_dates = {};
+		var get_fomatted_date = function(da){
+			if(formatted_dates[da]){
+				return formatted_dates[da];
+			}
+			return formatted_dates[da] = app.utils.fmt_num_date(da, 0);
+		}
+		var render_list = function(attrs, memo) {
 			if (memo.items.length === 0) {
 				return dom.div(null, dom.p(null, app.lbl("no_comments")));
 			}
-			var check_can_remove = function(item) {
-				return attrs.can_remove_all || attrs.can_remove && item.u_id === app.get_u_id();
-			}
-			var show_menu_pop = function(x, y, item, btns) {
-				var w = 120;
-				return app.popit.toggle({
-					initiator: "hitokoto_" + item._id,
-					left: x - w,
-					top: y,
-					render: function(dom, popper) {
-						return dom.bj.vbox({
-							zen: {
-								w: w,
-								ai: "fe"
-							}
-						}, dom.span({
-							className: "hitokoto_menupop_bg"
-						}, btns));
-					},
-					ann: x === 3 ? "slideInRight" : ""
-				})
 
-			}
-			var render_menu = function(item) {
-				var btns = [];
-				if (check_can_remove(item)) {
-					btns.push(dom.bj.btn({
-						lbl: app.lbl("remove_comment_lbl"),
-						icon_right: hitokoto.icons.remove_comment,
-						onClick: function() {
-							app.popit.hide();
-							return attrs.model.remove(item, function(err, res) {
-							});
-						}
-					}))
-				}
-				if (!btns.length) {
-					return null;
-				}
-				return dom.bj.btn({
-					zen: {
-						pos: "a",
-						t: 2,
-						r: 2
-					},
-					icon: hitokoto.icons.comment_menu,
-					onClick: function(e) {
-						var r = e.currentTarget.getBoundingClientRect();
-						return show_menu_pop(r.left + r.width, r.top + r.height, item, btns);
-					}
-				});
-			}
 			return dom.bj.lt({
-				zen : {
-					mah : attrs.max_list_height,
-					ovx : "h"
+				zen: {
+					mah: attrs.max_list_height,
+					ovx: "h"
 				}
 			}, memo.items.map(function(item) {
 				return dom.bj.lt_media_item({
 					src: (item.u_p || FRZ.default_account_photoURL)
-				}, [render_menu(item), dom.p(null, item.txt)], [dom.span({}, item.u_n)]);
+				}, [render_menu(attrs, item),
+				dom.p(null, item.txt)], [dom.p({}, get_fomatted_date(item.da)), dom.p({}, item.u_n)]);
 			}))
 		}
-		var render_commnet_list_body= function(attrs, memo){
-			if(attrs.input_below){
-				return [get_list(attrs, memo), get_comment_area(attrs, memo)];
+		
+		var render_commnet_list_body = function(attrs, memo) {
+			if (attrs.input_below) {
+				return [render_list(attrs, memo), render_comment_area(attrs, memo)];
 			}
-			return [get_comment_area(attrs, memo), get_list(attrs, memo)];
+			return [render_comment_area(attrs, memo), render_list(attrs, memo)];
 		}
 		hitokoto.ui.list = function(attrs) {
 			//should pass an id
 			var memo = app.utils.stobber(attrs.id || "hitokoto_list", {});
 			memo.items = attrs.model.load(attrs.key, attrs.obj_id, attrs.obj_type);
-			if(attrs.asc){
+			if (attrs.asc) {
 				memo.items = memo.items.concat().reverse();
 			}
 			return dom.div({
