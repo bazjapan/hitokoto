@@ -1,0 +1,13 @@
+{
+    "name": "hitokoto",
+    "vers": {
+        "hitokoto": {
+            "path": "/js/hitokoto2.js",
+            "cdn": 1,
+            "min": 1,
+            "ver": 20200428120709
+        }
+    },
+    "last_mod": 20200428120709,
+    "last_update": 20200430003725
+}
