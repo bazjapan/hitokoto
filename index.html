@@ -9,14 +9,17 @@
 		<meta name="apple-mobile-web-app-capable" content="yes">
 		<meta name="mobile-web-app-capable" content="yes">
 		<title>Hitokoto</title>
+	
 		<script id="FRZ_loader" type="application/javascript">
 
 			window.on_FRZ_LOADED = function() {
-				FRZ.use_cdn = true;
-				FRZ.is_dev = true;
-				FRZ.app.name = "hitokoto";
-				FRZ.cdn_root = "http://localhost:5020";
+				FRZ.use_cdn = HOSTIAN.use_cdn;
+				FRZ.is_dev = HOSTIAN.is_dev;
+				FRZ.cdn_root = HOSTIAN.cdn_root;
+
+				
 				FRZ.on_silly_sausage = function(app, root_opts, dom) {
+					FRZ.app.name = "hitokoto";
 					FRZ.add_vers({
 						hitokoto: {
 							path: "/hitokoto/js/hitokoto2.js",
@@ -100,12 +103,39 @@
 				FRZ.init();
 			}
 		</script>
+<script id="HOSTIAN">
+	(function() {
+		window.HOSTIAN = {
+			hostian_ver: "0.0.2",
+			use_cdn: true,
+			is_dev: location.href.indexOf("localhost") > -1,
+			cdn_root: "http://localhost:5020",
+			do_path : function(p, ver){
+				return HOSTIAN.cdn_root + p + (!HOSTIAN.is_dev?"?ver"+ver:"");
+			}, 
+			frz_ver : "202005122101"
+		}
+		if (!HOSTIAN.is_dev) {
+			HOSTIAN.cdn_root = "https://sites-cdn.firebaseapp.com"
+		}
+		var head = document.getElementsByTagName('head')[0];
+		var frz_js = document.createElement('script');
+		frz_js.type = 'text/javascript';
+		frz_js.src = HOSTIAN.do_path("/FRZ/FRZ.js", HOSTIAN.frz_ver);
+		frz_js.async = true;
+		head.appendChild(frz_js);
+		var frz_css = document.createElement('link');
+		frz_css.type = 'text/css';
+		frz_css.href = HOSTIAN.do_path("/FRZ/core/css/FRZ.core.css", "1.0.1");
+		frz_css.rel = "stylesheet";
+		head.appendChild(frz_css);	
+	}());
+	</script>
 	</head>
 	<body class="body">
 		<noscript>Please enable JavaScript to continue.</noscript>
 		<div id="frz_layout"></div>
 		<div id="app_css"></div>
 	</body>
-	<link href="http://localhost:5020/FRZ/core/css/FRZ.core.css" rel="stylesheet" type="text/css">
-	<script async src="http://localhost:5020/FRZ/FRZ.js" id="frz_script"></script>
+
 </html>
